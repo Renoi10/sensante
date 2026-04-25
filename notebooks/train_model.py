@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
 import os
+import warnings
+warnings.filterwarnings('ignore')
 
 # ============================================================
 # ETAPE 2.1 : Charger le vrai dataset
@@ -179,3 +181,44 @@ print(f"\nProbabilites par classe :")
 for classe, proba in zip(model_loaded.classes_, probas):
     bar = '#' * int(proba * 30)
     print(f"  {classe:12s} : {proba:.1%} {bar}")
+    # ============================================================
+# EXERCICE 1 : Importance des features
+# ============================================================
+print("\n--- Importance des features ---")
+importances = model.feature_importances_
+for name, imp in sorted(zip(feature_cols, importances),
+                         key=lambda x: x[1], reverse=True):
+    print(f"{name:20s} : {imp:.3f}")
+    # ============================================================
+# EXERCICE 2 : Tester 3 patients fictifs
+# ============================================================
+patients_test = [
+    {'age': 8,  'sexe': 'M', 'temperature': 36.8, 'tension_sys': 120,
+     'toux': 0, 'fatigue': 0, 'maux_tete': 0, 'frissons': 0, 'nausee': 0, 'region': 'Dakar'},
+    {'age': 35, 'sexe': 'F', 'temperature': 40.1, 'tension_sys': 95,
+     'toux': 0, 'fatigue': 1, 'maux_tete': 1, 'frissons': 1, 'nausee': 1, 'region': 'Thiès'},
+    {'age': 65, 'sexe': 'M', 'temperature': 38.9, 'tension_sys': 105,
+     'toux': 1, 'fatigue': 1, 'maux_tete': 0, 'frissons': 0, 'nausee': 0, 'region': 'Ziguinchor'},
+]
+
+print("\n--- Exercice 2 : Predictions sur 3 patients fictifs ---")
+for i, p in enumerate(patients_test):
+    sexe_enc = le_sexe_loaded.transform([p['sexe']])[0]
+    region_enc = le_region_loaded.transform([p['region']])[0]
+    features = [p['age'], sexe_enc, p['temperature'], p['tension_sys'],
+                p['toux'], p['fatigue'], p['maux_tete'],
+                p['frissons'], p['nausee'], region_enc]
+    diag = model_loaded.predict([features])[0]
+    proba = model_loaded.predict_proba([features])[0].max()
+    print(f"Patient {i+1} ({p['sexe']}, {p['age']} ans, {p['temperature']}°C) "
+          f"-> {diag} ({proba:.1%})")
+    # ============================================================
+# EXERCICE 3 : Reflexion sur l'accuracy
+# ============================================================
+# Le modele obtient 78% d'accuracy sur 100 patients de test.
+# Dans un contexte medical reel, ce score est insuffisant.
+# Un faux diagnostic peut avoir des consequences graves :
+# un patient paludeen diagnostique "sain" ne sera pas traite
+# a temps, ce qui peut mener a des complications serieuses.
+# En production, on viserait au minimum 95% et on combinerait
+# le modele avec l'avis d'un medecin pour les cas incertains.
