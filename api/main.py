@@ -1,6 +1,7 @@
 # api/main.py
 # SenSante API - Assistant pre-diagnostic medical
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import joblib
 import numpy as np
@@ -31,6 +32,15 @@ app = FastAPI(
     version="0.2.0"
 )
 
+# --- CORS (Etape 6 - Lab 4) ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # --- Chargement du modele (une seule fois) ---
 print("Chargement du modele...")
 model = joblib.load("models/model.pkl")
@@ -43,6 +53,17 @@ print(f"Modele charge : {list(model.classes_)}")
 @app.get("/health")
 def health_check():
     return {"status": "ok", "message": "SenSante API is running"}
+
+@app.get("/model-info")
+def model_info():
+    """Informations sur le modele charge."""
+    return {
+        "type": type(model).__name__,
+        "nombre_arbres": model.n_estimators,
+        "classes": list(model.classes_),
+        "nombre_features": model.n_features_in_,
+        "features": list(feature_cols)
+    }
 
 @app.post("/predict", response_model=DiagnosticOutput)
 def predict(patient: PatientInput):
